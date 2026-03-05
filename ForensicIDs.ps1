@@ -15,7 +15,7 @@ Features:
 Compatibility:
   - Windows PowerShell 5.1 and newer
   - Windows 8.1 / Server 2012 R2 and newer
-  - Requires administrative privileges (handled dynamically via Ensure-Administrator)
+  - Requires administrative privileges (handled dynamically via Assert-Administrator)
 
 Output:
   - Structured console output
@@ -1590,4 +1590,5 @@ function Confirm-Exit {
 }
 
 # Call exit confirmation
+
 Confirm-Exit
