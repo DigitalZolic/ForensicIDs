@@ -3,7 +3,7 @@
 ================================================================================
 
 Description:
-ForencisIDs is released as open-source and is coded in advanced pure powershell with the purpose to retrive a detailed set of hardware, firmware, bios, tpm and other unique high-security system identifiers for tracking-evasion, inventory, diagnostics, compliance, security and forensic analysis purposes. You basically get a comprehensive hardware and firmware enumeration, with serial numbers for each computer components as well as TPM Identity and Secure Boot status detection, Virtualization and Hypervisor Awareness which is all later generated to a deterministic hardware fingerprint with Console and file-based reporting.
+- ForencisIDs is released as open-source and is coded in advanced pure powershell with the purpose to retrive a detailed set of hardware, firmware, bios, tpm and other unique high-security system identifiers for tracking-evasion, inventory, diagnostics, compliance, security and forensic analysis purposes. You basically get a comprehensive hardware and firmware enumeration, with serial numbers for each computer components as well as TPM Identity and Secure Boot status detection, Virtualization and Hypervisor Awareness which is all later generated to a deterministic hardware fingerprint with Console and file-based reporting. FREE.
 
 Features:
   - BIOS Identification
