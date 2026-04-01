@@ -16,6 +16,7 @@
   - FINGERPRINT Identification
 
 **Compatibility:**
+  - Windows 11 - Support All Versions
   - Windows PowerShell 5.1 and newer
   - Windows 8.1 / Server 2012 R2 and newer
   - Administrative privileges
