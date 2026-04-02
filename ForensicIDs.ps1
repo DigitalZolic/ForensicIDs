@@ -1616,7 +1616,7 @@ function Confirm-Exit {
         Write-Host "        Github: DigitalZolic           "
         Write-Host "=======================================" -ForegroundColor Green
         Write-Host
-        Write-Host 'Type "Close" to close the script.' -ForegroundColor Green
+        Write-Host 'Press "CTRL+C" to close the script.' -ForegroundColor Green
         Write-Host
 
         while ($true) {
