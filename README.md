@@ -25,8 +25,8 @@
 **Author:**
   - DigitalZolic
 
-**Version:**
-  - 04.01
+**Last Updated:**
+ - 2026-04-20
 
 **Notes:**
   This script is intended for authorized use only. Ensure compliance with
