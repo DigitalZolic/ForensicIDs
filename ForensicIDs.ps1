@@ -5,22 +5,6 @@ Description:
   Collects detailed hardware, firmware, bios, tpm and other system identifiers
   for inventory, diagnostics, compliance, security and forensic analysis purposes.
 
-Features:
-  - Comprehensive hardware and firmware enumeration
-  - TPM Identity and Secure Boot status detection
-  - Virtualization and Hypervisor Awareness
-  - Deterministic hardware fingerprint generation
-  - Console and file-based reporting
-
-Compatibility:
-  - Windows PowerShell 5.1 and newer
-  - Windows 8.1 / Server 2012 R2 and newer
-  - Requires administrative privileges (handled dynamically via Assert-Administrator)
-
-Output:
-  - Structured console output
-  - Text report saved to user Desktop
-
 Name:
   ForensicIDs
 
@@ -28,7 +12,7 @@ Author:
   DigitalZolic
 
 Last Updated:
-  2026-04-20
+  2026-04-30
 
 Notes:
   This script is intended for authorized use only. Ensure compliance with
