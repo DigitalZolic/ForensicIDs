@@ -27,8 +27,11 @@ Name:
 Author:
   DigitalZolic
 
+Version:
+  30.12
+
 Last Updated:
-  2026-04-20
+  2026-03-12
 
 Notes:
   This script is intended for authorized use only. Ensure compliance with
@@ -588,7 +591,7 @@ function Get-HardwareFingerprint {
 }
 
 # ========================================================================
-# SECTION 8 - CORE: COLLECTION ORCHESTRATOR
+# SECTION 7 - CORE: COLLECTION ORCHESTRATOR
 # ========================================================================
 
 $hardwareDetails = [ordered]@{}
@@ -622,7 +625,7 @@ function Collect-Info {
 }
 
 # ========================================================================
-# SECTION 9 - NETWORK CATEGORY
+# SECTION 8 - NETWORK CATEGORY
 # ========================================================================
 
 function Collect-NetworkCategory {
@@ -652,7 +655,7 @@ function Collect-NetworkCategory {
 }
 
 # ========================================================================
-# SECTION 10 - BIOS CATEGORY
+# SECTION 9 - BIOS CATEGORY
 # ========================================================================
 
 function Collect-BiosCategory {
@@ -715,7 +718,7 @@ function Collect-BiosCategory {
 }
 
 # ========================================================================
-# SECTION 11 - SYSTEM CATEGORY
+# SECTION 10 - SYSTEM CATEGORY
 # ========================================================================
 
 function Collect-SystemCategory {
@@ -735,7 +738,7 @@ function Collect-SystemCategory {
 }
 
 # ========================================================================
-# SECTION 12 - MOTHERBOARD CATEGORY
+# SECTION 11 - MOTHERBOARD CATEGORY
 # ========================================================================
 
 function Collect-MotherboardCategory {
@@ -743,16 +746,16 @@ function Collect-MotherboardCategory {
     Collect-Info "Motherboard Product"      { $CIM.BaseBoard.Product }
     Collect-Info "Motherboard Serial Number"{ $CIM.BaseBoard.SerialNumber }
     Collect-Info "Motherboard Asset Tag" {
-        if ($CIM.BaseBoard.PSObject.Properties.Name -contains 'AssetTag') {
-            $CIM.BaseBoard.AssetTag
-        } else { 
-            "Not Available" 
+        if ($CIM.BaseBoard.PSObject.Properties.Name -contains 'Tag' -and $CIM.BaseBoard.Tag) {
+            $CIM.BaseBoard.Tag
+        } else {
+            "Not Available"
         }
     }
 }
 
 # ========================================================================
-# SECTION 13 - PROCESSOR CATEGORY
+# SECTION 12 - PROCESSOR CATEGORY
 # ========================================================================
 
 function Collect-ProcessorCategory {
@@ -764,7 +767,7 @@ function Collect-ProcessorCategory {
 }
 
 # ========================================================================
-# SECTION 14 - CHASSIS CATEGORY
+# SECTION 13 - CHASSIS CATEGORY
 # ========================================================================
 
 function Collect-ChassisCategory {
@@ -776,7 +779,7 @@ function Collect-ChassisCategory {
 }
 
 # ========================================================================
-# SECTION 15 - RAM CATEGORY
+# SECTION 14 - RAM CATEGORY
 # ========================================================================
 
 function Collect-MemoryCategory {
@@ -786,7 +789,7 @@ function Collect-MemoryCategory {
 }
 
 # ========================================================================
-# SECTION 16 - DISK CATEGORY
+# SECTION 15 - DISK CATEGORY
 # ========================================================================
 
 function Collect-DiskCategory {
@@ -835,7 +838,7 @@ function Collect-DiskCategory {
 }
 
 # ========================================================================
-# SECTION 17 - TPM CATEGORY
+# SECTION 16 - TPM CATEGORY
 # ========================================================================
 
 function Collect-TpmInfo {
@@ -968,27 +971,24 @@ function Collect-TpmInfo {
     # EK retrieval
     # --------------------------------------------------------------------
     try {
-    $ek = Get-TpmEndorsementKeyInfo -ErrorAction Stop
-    if ($ek -and $ek.PublicKey -and $ek.PublicKey.RawData) {
-        $ekBytes = $ek.PublicKey.RawData
-        $result["TPM EK MD5"]    = Get-HashHex $ekBytes "MD5"
-        $result["TPM EK SHA1"]   = Get-HashHex $ekBytes "SHA1"
-        $result["TPM EK SHA256"] = Get-HashHex $ekBytes "SHA256"
-        $result["TPM EK Hash"]   = $result["TPM EK SHA256"]
+        $ek = Get-TpmEndorsementKeyInfo -ErrorAction Stop
+        if ($ek -and $ek.PublicKey -and $ek.PublicKey.RawData) {
+            $ekBytes = $ek.PublicKey.RawData
+            $result["TPM EK MD5"]    = Get-HashHex $ekBytes "MD5"
+            $result["TPM EK SHA1"]   = Get-HashHex $ekBytes "SHA1"
+            $result["TPM EK SHA256"] = Get-HashHex $ekBytes "SHA256"
+            $result["TPM EK Hash"]   = $result["TPM EK SHA256"]
 
-        # Check both ManufacturerCertificates and AdditionalCertificates
-        $certificates = $ek.ManufacturerCertificates + $ek.AdditionalCertificates
-
-        if ($certificates) {
-            foreach ($cert in $certificates) {
-                $result["TPM EK Certificate Serial"]      += $cert.SerialNumber
-                $result["TPM EK Certificate Thumbprint"]  += $cert.Thumbprint
-                $result["TPM EK Certificate SHA256 Hash"] += Get-HashHex $cert.RawData "SHA256"
+            if ($ek.ManufacturerCertificates) {
+                foreach ($cert in $ek.ManufacturerCertificates) {
+                    $result["TPM EK Certificate Serial"]      += $cert.SerialNumber
+                    $result["TPM EK Certificate Thumbprint"]  += $cert.Thumbprint
+                    $result["TPM EK Certificate SHA256 Hash"] += Get-HashHex $cert.RawData "SHA256"
+                }
             }
         }
-      }
     }
-     catch { }
+    catch { }
 
     # --------------------------------------------------------------------
     # Composite TPM Identity Hash
@@ -1014,7 +1014,7 @@ function Collect-TpmInfo {
 }
 
 # ========================================================================
-# SECTION 18 - SECURE BOOT CATEGORY
+# SECTION 17 - SECURE BOOT CATEGORY
 # ========================================================================
 
 function Collect-SecureBootInfo {
@@ -1037,18 +1037,12 @@ function Collect-SecureBootInfo {
         param ([byte[]]$Data)
         if (-not $Data -or $Data.Length -eq 0) { return $null }
 
+        $sha = [System.Security.Cryptography.SHA256]::Create()
         try {
-            $sha = [System.Security.Cryptography.SHA256]::Create()
             $hash = $sha.ComputeHash($Data)
             return (-join ($hash | ForEach-Object { $_.ToString("X2") }))
         }
-        catch {
-            Write-Warning "Failed to compute SHA256 hash: $_"
-            return $null
-        }
-        finally {
-            $sha.Dispose()
-        }
+        finally { $sha.Dispose() }
     }
 
     # -------------------------------------------------
@@ -1056,7 +1050,7 @@ function Collect-SecureBootInfo {
     # -------------------------------------------------
     function Get-FirmwareType {
 
-        # --- Registry Method (Most Reliable) ---
+        # --- Method 1: Registry (Most Reliable) ---
         try {
             $fw = (Get-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Control" -Name PEFirmwareType -ErrorAction Stop).PEFirmwareType
             switch ([int]$fw) {
@@ -1064,24 +1058,20 @@ function Collect-SecureBootInfo {
                 2 { return "UEFI" }
             }
         }
-        catch {
-            Write-Verbose "Registry method failed, proceeding with alternative checks."
-        }
+        catch {}
 
-        # --- Check for SecureBoot Key Existence ---
+        # --- Method 2: SecureBoot key existence ---
         if (Test-Path "HKLM:\SYSTEM\CurrentControlSet\Control\SecureBoot") {
             return "UEFI"
         }
 
-        # --- CIM Method Fallback ---
+        # --- Method 3: CIM fallback ---
         try {
             $cs = Get-CimInstance -ClassName Win32_ComputerSystem -ErrorAction Stop
             if ($cs.FirmwareType -eq 3) { return "Legacy BIOS" }
             if ($cs.FirmwareType -eq 4) { return "UEFI" }
         }
-        catch {
-            Write-Warning "CIM method failed, returning Legacy BIOS as fallback."
-        }
+        catch {}
 
         return "Legacy BIOS"
     }
@@ -1092,128 +1082,105 @@ function Collect-SecureBootInfo {
     $result["Firmware Type"] = Get-FirmwareType
 
     # -------------------------------------------------
-    # Fetch CIM instance once for virtualization check
+    # Fetch CIM instance once for virtualization and optional fallback
     # -------------------------------------------------
     $cs = $null
     try { $cs = Get-CimInstance -ClassName Win32_ComputerSystem -ErrorAction Stop } catch {}
 
     # -------------------------------------------------
-    # Detect Secure Boot State (Only for UEFI)
+    # Detect Secure Boot State (Only attempt if firmware is UEFI)
     # -------------------------------------------------
     if ($result["Firmware Type"] -eq "UEFI") {
-        $result["Secure Boot"] = Get-SecureBootState
+        try {
+            $enabled = Confirm-SecureBootUEFI -ErrorAction Stop
+            $result["Secure Boot"] = if ($enabled) { "Enabled" } else { "Disabled" }
+        }
+        catch {
+            $reg = "HKLM:\SYSTEM\CurrentControlSet\Control\SecureBoot\State"
+            if (Test-Path $reg) {
+                try {
+                    $val = (Get-ItemProperty -Path $reg -ErrorAction Stop).UEFISecureBootEnabled
+                    if ($null -ne $val) {
+                        $result["Secure Boot"] = if ($val -eq 1) { "Enabled" } else { "Disabled" }
+                    }
+                }
+                catch {}
+            }
+        }
 
+        # -------------------------------------------------
         # Detect UEFI Variable Access Privilege
-        $result["UEFI Variable Access Privilege"] = Get-UEFIPrivilege
+        # -------------------------------------------------
+        try {
+            $priv = whoami /priv 2>$null
+            if ($priv -match "SeSystemEnvironmentPrivilege\s+Enabled") {
+                $result["UEFI Variable Access Privilege"] = "Present"
+            }
+            else {
+                $result["UEFI Variable Access Privilege"] = "Denied (OS blocked from reading UEFI variables by policy)"
+            }
+        }
+        catch {
+            $result["UEFI Variable Access Privilege"] = "Missing (Unable to determine privilege)"
+        }
 
-        # Extract Secure Boot Variables (if cmdlet exists)
+        # -------------------------------------------------
+        # Extract Secure Boot Variables (Only if cmdlet exists)
+        # -------------------------------------------------
         if ($result["Secure Boot"] -eq "Enabled" -and
             $result["UEFI Variable Access Privilege"] -eq "Present" -and
             (Get-Command Get-SecureBootUEFI -ErrorAction SilentlyContinue)) {
-            $result = Get-SecureBootVariables $result
+
+            $vars = @("PK","KEK","db","dbx")
+            foreach ($name in $vars) {
+                try {
+                    $varObj = Get-SecureBootUEFI -Name $name -ErrorAction Stop
+                    if ($varObj -and $varObj.Bytes) {
+                        $hash = Get-HashHex -Data $varObj.Bytes
+                        if ($hash) {
+                            switch ($name) {
+                                "PK"  { $result["Secure Boot PK SHA256"]  = $hash }
+                                "KEK" { $result["Secure Boot KEK SHA256"] = $hash }
+                                "db"  { $result["Secure Boot DB SHA256"]  = $hash }
+                                "dbx" { $result["Secure Boot DBX SHA256"] = $hash }
+                            }
+                        }
+                    }
+                }
+                catch {}
+            }
         }
     }
 
     # -------------------------------------------------
     # Interpretation Logic
     # -------------------------------------------------
-    $result["Secure Boot Interpretation"] = Get-SecureBootInterpretation $result
-
-    return $result
-}
-
-# -------------------------------------------------
-# Helper: Detect Secure Boot State
-# -------------------------------------------------
-function Get-SecureBootState {
-    try {
-        $enabled = Confirm-SecureBootUEFI -ErrorAction Stop
-        return if ($enabled) { "Enabled" } else { "Disabled" }
-    }
-    catch {
-        $reg = "HKLM:\SYSTEM\CurrentControlSet\Control\SecureBoot\State"
-        if (Test-Path $reg) {
-            try {
-                $val = (Get-ItemProperty -Path $reg -ErrorAction Stop).UEFISecureBootEnabled
-                return if ($null -ne $val -and $val -eq 1) { "Enabled" } else { "Disabled" }
-            }
-            catch { return "Not Available" }
-        }
-    }
-    return "Not Available"
-}
-
-# -------------------------------------------------
-# Helper: Detect UEFI Variable Access Privilege
-# -------------------------------------------------
-function Get-UEFIPrivilege {
-    try {
-        $priv = whoami /priv 2>$null
-        if ($priv -match "SeSystemEnvironmentPrivilege\s+Enabled") {
-            return "Present"
-        }
-        else {
-            return "Denied (OS blocked from reading UEFI variables by policy)"
-        }
-    }
-    catch {
-        return "Missing (Unable to determine privilege)"
-    }
-}
-
-# -------------------------------------------------
-# Helper: Extract Secure Boot Variables
-# -------------------------------------------------
-function Get-SecureBootVariables ($result) {
-    $vars = @("PK","KEK","db","dbx")
-    foreach ($name in $vars) {
-        try {
-            $varObj = Get-SecureBootUEFI -Name $name -ErrorAction Stop
-            if ($varObj -and $varObj.Bytes) {
-                $hash = Get-HashHex -Data $varObj.Bytes
-                if ($hash) {
-                    switch ($name) {
-                        "PK"  { $result["Secure Boot PK SHA256"]  = $hash }
-                        "KEK" { $result["Secure Boot KEK SHA256"] = $hash }
-                        "db"  { $result["Secure Boot DB SHA256"]  = $hash }
-                        "dbx" { $result["Secure Boot DBX SHA256"] = $hash }
-                    }
-                }
-            }
-        }
-        catch {}
-    }
-    return $result
-}
-
-# -------------------------------------------------
-# Helper: Secure Boot Interpretation Logic
-# -------------------------------------------------
-function Get-SecureBootInterpretation ($result) {
     if ($result["Firmware Type"] -eq "Legacy BIOS") {
-        return "Not Available (Legacy BIOS system)"
+        $result["Secure Boot Interpretation"] = "Not Available (Legacy BIOS system)"
     }
     elseif ($result["Secure Boot"] -eq "Enabled") {
         if ($isVirtual) {
-            return "Enabled (Virtualized - Hypervisor-managed Secure Boot)"
+            $result["Secure Boot Interpretation"] = "Enabled (Virtualized - Hypervisor-managed Secure Boot)"
         }
         elseif ($result["Secure Boot PK SHA256"] -eq "Not Available") {
-            return "Enabled (Firmware protected - Variables inaccessible)"
+            $result["Secure Boot Interpretation"] = "Enabled (Firmware protected - Variables inaccessible)"
         }
         else {
-            return "Enabled (Root-of-Trust variables accessible)"
+            $result["Secure Boot Interpretation"] = "Enabled (Root-of-Trust variables accessible)"
         }
     }
     elseif ($result["Secure Boot"] -eq "Disabled") {
-        return "Disabled (No firmware boot-chain enforcement)"
+        $result["Secure Boot Interpretation"] = "Disabled (No firmware boot-chain enforcement)"
     }
     else {
-        return "Not Available (Unsupported firmware or restricted environment)"
+        $result["Secure Boot Interpretation"] = "Not Available (Unsupported firmware or restricted environment)"
     }
+
+    return $result
 }
 
 # ========================================================================
-# SECTION 19 - MAIN COLLECTION EXECUTION
+# SECTION 18 - MAIN COLLECTION EXECUTION
 # ========================================================================
 
 Collect-NetworkCategory
@@ -1229,7 +1196,7 @@ $hardwareDetails += Collect-TpmInfo
 $hardwareDetails += Collect-SecureBootInfo
 
 # ========================================================================
-# SECTION 20 - HYPERVISOR & VIRTUALIZATION
+# SECTION 19 - HYPERVISOR & VIRTUALIZATION
 # ========================================================================
 
 # ------------------------------------------------------------------------
@@ -1430,7 +1397,7 @@ Collect-Info "Hypervisor Detection Method" {
 }
 
 # ========================================================================
-# SECTION 21 - HARDWARE FINGERPRINT
+# SECTION 20 - HARDWARE FINGERPRINT
 # ========================================================================
 
 # Initialize parts array
@@ -1483,7 +1450,7 @@ $fpParts = $fpParts |
 $hardwareDetails["Hardware Fingerprint"] = Get-HardwareFingerprint -Parts $fpParts
 
 # ========================================================================
-# SECTION 22 - DEFINE OUTPUT PATHS + CLEAR HOST
+# SECTION 21 - DEFINE OUTPUT PATHS + CLEAR HOST
 # ========================================================================
 
 # Base output directory (Desktop)
@@ -1505,7 +1472,7 @@ $path = Join-Path $OutputDirectory "HardwareIds_$timestamp.txt"
 Clear-Host
 
 # ========================================================================
-# SECTION 23 - BUILD FINAL FORMATTED OUTPUT
+# SECTION 22 - BUILD FINAL FORMATTED OUTPUT
 # ========================================================================
 
 $hardwareDetailsFormatted = @"
@@ -1514,7 +1481,6 @@ $hardwareDetailsFormatted = @"
       Found Hardware Information
 =======================================
 
-=============== NETWORK ===============
 Local IPv4 Address: $($hardwareDetails['Local IPv4 Address'])
 Public IPv4 Address: $($hardwareDetails['Public IPv4 Address'])
 Local DNS Address: $($hardwareDetails['Local DNS Address'])
@@ -1604,7 +1570,7 @@ Revoked Signature Database (dbx): $($hardwareDetails['Secure Boot DBX SHA256'])
 
 =============== VIRTUALIZATION ===============
 CPU Virtualization Capability: $($hardwareDetails['CPU Virtualization Capability'])
-FW Virtualization: $($hardwareDetails['Firmware Virtualization'])
+Firmware Virtualization: $($hardwareDetails['Firmware Virtualization'])
 OS Virtualization: $($hardwareDetails['OS Virtualization'])
 Hypervisor Vendor: $($hardwareDetails['Hypervisor Vendor'])
 Hypervisor Detection Method: $($hardwareDetails['Hypervisor Detection Method'])
@@ -1621,7 +1587,7 @@ Write-Host $hardwareDetailsFormatted
 $hardwareDetailsFormatted | Out-File $path -Encoding UTF8
 
 # ======================================================
-# SECTION 24 - WAIT FOR EXIT
+# SECTION 23 - WAIT FOR EXIT
 # ======================================================
 
 function Confirm-Exit {
